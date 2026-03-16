@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -19,9 +20,36 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Connection succedeed.")
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
-	fmt.Println()
-	fmt.Println("Interrupt received, shutting down Peril.")
+	newChannel, err := conn.Channel()
+	if err != nil {
+		fmt.Println("Error creating new channel.")
+		return
+	}
+
+	_, _, err = pubsub.DeclareAndBind(conn, routing.ExchangePerilTopic, routing.GameLogSlug, "game_logs.*", pubsub.Durable)
+	if err != nil {
+		fmt.Println("Error binding to queue: ", err)
+	}
+
+	gamelogic.PrintServerHelp()
+	for run := true; run; {
+		input := gamelogic.GetInput()
+		if len(input) == 0 {
+			continue
+		}
+		switch input[0] {
+		case "pause":
+			fmt.Println("Sending pause message.")
+			pubsub.PublishJSON(newChannel, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+		case "resume":
+			fmt.Println("Sending resume message.")
+			pubsub.PublishJSON(newChannel, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false})
+		case "quit":
+			fmt.Println("Shutting down.")
+			run = false
+		default:
+			fmt.Println("Command unavailable or inexistant.")
+		}
+
+	}
 }
