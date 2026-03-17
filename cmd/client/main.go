@@ -28,13 +28,10 @@ func main() {
 	}
 
 	name := routing.PauseKey + "." + username
-	_, _, err = pubsub.DeclareAndBind(conn, routing.ExchangePerilDirect, name, routing.PauseKey, pubsub.Transient)
-	if err != nil {
-		fmt.Println("Error on DeclareAndBind")
-		return
-	}
 
 	gamestate := gamelogic.NewGameState(username)
+
+	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilDirect, name, routing.PauseKey, pubsub.Transient, handlerPause(gamestate))
 
 	for run := true; run; {
 		input := gamelogic.GetInput()
