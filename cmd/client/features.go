@@ -14,3 +14,11 @@ func handlerPause(gs *gamelogic.GameState) func(routing.PlayingState) {
 	}
 	return pause
 }
+
+func handlerMove(gs *gamelogic.GameState) func(mv gamelogic.ArmyMove) {
+	pause := func(mv gamelogic.ArmyMove) {
+		defer fmt.Print("> ")
+		gs.HandleMove(mv)
+	}
+	return pause
+}

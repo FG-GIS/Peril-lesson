@@ -21,17 +21,33 @@ func main() {
 	defer conn.Close()
 	fmt.Println("Connection succedeed.")
 
+	newChannel, err := conn.Channel()
+	if err != nil {
+		fmt.Println("Error creating new channel.")
+		return
+	}
+
 	username, err := gamelogic.ClientWelcome()
 	if err != nil {
 		fmt.Println("Error getting username.")
 		return
 	}
 
-	name := routing.PauseKey + "." + username
+	namePause := routing.PauseKey + "." + username
 
 	gamestate := gamelogic.NewGameState(username)
 
-	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilDirect, name, routing.PauseKey, pubsub.Transient, handlerPause(gamestate))
+	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilDirect, namePause, routing.PauseKey, pubsub.Transient, handlerPause(gamestate))
+	if err != nil {
+		fmt.Println("Error binding to queue: ", namePause)
+	}
+	nameMove := routing.ArmyMovesPrefix + "." + username
+
+	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilTopic, nameMove, routing.ArmyMovesPrefix+".*", pubsub.Transient, handlerMove(gamestate))
+
+	if err != nil {
+		fmt.Println("Error binding to queue: ", nameMove)
+	}
 
 	for run := true; run; {
 		input := gamelogic.GetInput()
@@ -48,8 +64,16 @@ func main() {
 			move, err := gamestate.CommandMove(input)
 			if err != nil {
 				fmt.Println("Moving error: ", err)
+				return
 			} else {
-				fmt.Println("Successful move: ", move)
+				fmt.Println("Successful move")
+			}
+			err = pubsub.PublishJSON(newChannel, routing.ExchangePerilTopic, nameMove, move)
+			if err != nil {
+				fmt.Println("Error publishing move: ", err)
+				return
+			} else {
+				fmt.Println("Publisjed successfully.")
 			}
 
 		case "status":
