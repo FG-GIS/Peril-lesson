@@ -83,7 +83,6 @@ func SubscribeJSON[T any](conn *amqp.Connection, exchange, queueName, key string
 				fmt.Println("Acktype: NackRequeue")
 				err = me.Nack(false, true)
 			}
-			err = me.Ack(false)
 		}
 	}()
 	return nil

@@ -43,10 +43,18 @@ func main() {
 	}
 	nameMove := routing.ArmyMovesPrefix + "." + username
 
-	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilTopic, nameMove, routing.ArmyMovesPrefix+".*", pubsub.Transient, handlerMove(gamestate))
+	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilTopic, nameMove, routing.ArmyMovesPrefix+".*", pubsub.Transient, handlerMove(gamestate, newChannel))
 
 	if err != nil {
 		fmt.Println("Error binding to queue: ", nameMove)
+		return
+	}
+
+	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilTopic, routing.WarRecognitionsPrefix, routing.WarRecognitionsPrefix+".*", pubsub.Durable, handlerWar(gamestate))
+
+	if err != nil {
+		fmt.Println("Error binding to queue: ", "War")
+		return
 	}
 
 	for run := true; run; {
@@ -68,7 +76,7 @@ func main() {
 			} else {
 				fmt.Println("Successful move")
 			}
-			err = pubsub.PublishJSON(newChannel, routing.ExchangePerilTopic, nameMove, move)
+			err = pubsub.PublishJSON(newChannel, routing.ExchangePerilTopic, routing.ArmyMovesPrefix+"."+move.Player.Username, move)
 			if err != nil {
 				fmt.Println("Error publishing move: ", err)
 				return
