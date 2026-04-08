@@ -50,7 +50,7 @@ func main() {
 		return
 	}
 
-	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilTopic, routing.WarRecognitionsPrefix, routing.WarRecognitionsPrefix+".*", pubsub.Durable, handlerWar(gamestate))
+	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilTopic, routing.WarRecognitionsPrefix, routing.WarRecognitionsPrefix+".*", pubsub.Durable, handlerWar(gamestate, newChannel))
 
 	if err != nil {
 		fmt.Println("Error binding to queue: ", "War")

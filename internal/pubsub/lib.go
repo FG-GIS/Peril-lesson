@@ -1,10 +1,14 @@
 package pubsub
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"time"
 
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -86,4 +90,30 @@ func SubscribeJSON[T any](conn *amqp.Connection, exchange, queueName, key string
 		}
 	}()
 	return nil
+}
+
+func PublishGob[T any](ch *amqp.Channel, exchange, key string, val T) error {
+	var net bytes.Buffer
+	enc := gob.NewEncoder(&net)
+	err := enc.Encode(val)
+
+	if err != nil {
+		return err
+	}
+
+	ch.PublishWithContext(context.Background(), exchange, key, false, false, amqp.Publishing{
+		ContentType: "application/gob",
+		Body:        net.Bytes(),
+	})
+	return nil
+}
+
+func PubGLog(ch *amqp.Channel, username, message string) error {
+	key := routing.GameLogSlug + "." + username
+	data := routing.GameLog{
+		CurrentTime: time.Now(),
+		Message:     message,
+		Username:    username,
+	}
+	return PublishGob(ch, routing.ExchangePerilTopic, key, data)
 }

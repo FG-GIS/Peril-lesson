@@ -35,27 +35,42 @@ func handlerMove(gs *gamelogic.GameState, ch *amqp.Channel) func(mv gamelogic.Ar
 				fmt.Println("Error Publishing message to war queue")
 				return pubsub.NackRequeue
 			}
-			return pubsub.NackRequeue
+			return pubsub.Ack
 		}
 		return pubsub.NackDiscard
 	}
 	return move
 }
 
-func handlerWar(gs *gamelogic.GameState) func(rw gamelogic.RecognitionOfWar) pubsub.Acktype {
+func handlerWar(gs *gamelogic.GameState, ch *amqp.Channel) func(rw gamelogic.RecognitionOfWar) pubsub.Acktype {
 	war := func(rw gamelogic.RecognitionOfWar) pubsub.Acktype {
 		defer fmt.Print("> ")
-		outcome, _, _ := gs.HandleWar(rw)
+		outcome, winner, loser := gs.HandleWar(rw)
 		switch outcome {
 		case gamelogic.WarOutcomeNotInvolved:
 			return pubsub.NackRequeue
 		case gamelogic.WarOutcomeNoUnits:
 			return pubsub.NackDiscard
 		case gamelogic.WarOutcomeOpponentWon:
+			msg := winner + " won a war against " + loser
+			err := pubsub.PubGLog(ch, gs.GetUsername(), msg)
+			if err != nil {
+				return pubsub.NackRequeue
+			}
 			return pubsub.Ack
 		case gamelogic.WarOutcomeYouWon:
+			msg := winner + " won a war against " + loser
+			err := pubsub.PubGLog(ch, gs.GetUsername(), msg)
+			if err != nil {
+				return pubsub.NackRequeue
+			}
 			return pubsub.Ack
 		case gamelogic.WarOutcomeDraw:
+			msg := "A war between " + winner + " and " + loser + " resulted in a draw"
+			err := pubsub.PubGLog(ch, gs.GetUsername(), msg)
+			if err != nil {
+				return pubsub.NackRequeue
+			}
 			return pubsub.Ack
 		}
 		fmt.Println("Unexpected war result: ", outcome)
