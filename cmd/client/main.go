@@ -37,20 +37,20 @@ func main() {
 
 	gamestate := gamelogic.NewGameState(username)
 
-	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilDirect, namePause, routing.PauseKey, pubsub.Transient, handlerPause(gamestate))
+	err = pubsub.Subscribe(conn, routing.ExchangePerilDirect, namePause, routing.PauseKey, pubsub.Transient, handlerPause(gamestate), pubsub.UnmarshalJSON)
 	if err != nil {
 		fmt.Println("Error binding to queue: ", namePause)
 	}
 	nameMove := routing.ArmyMovesPrefix + "." + username
 
-	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilTopic, nameMove, routing.ArmyMovesPrefix+".*", pubsub.Transient, handlerMove(gamestate, newChannel))
+	err = pubsub.Subscribe(conn, routing.ExchangePerilTopic, nameMove, routing.ArmyMovesPrefix+".*", pubsub.Transient, handlerMove(gamestate, newChannel), pubsub.UnmarshalJSON)
 
 	if err != nil {
 		fmt.Println("Error binding to queue: ", nameMove)
 		return
 	}
 
-	err = pubsub.SubscribeJSON(conn, routing.ExchangePerilTopic, routing.WarRecognitionsPrefix, routing.WarRecognitionsPrefix+".*", pubsub.Durable, handlerWar(gamestate, newChannel))
+	err = pubsub.Subscribe(conn, routing.ExchangePerilTopic, routing.WarRecognitionsPrefix, routing.WarRecognitionsPrefix+".*", pubsub.Durable, handlerWar(gamestate, newChannel), pubsub.UnmarshalJSON)
 
 	if err != nil {
 		fmt.Println("Error binding to queue: ", "War")

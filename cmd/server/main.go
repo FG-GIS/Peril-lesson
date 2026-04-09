@@ -30,6 +30,12 @@ func main() {
 	if err != nil {
 		fmt.Println("Error binding to queue: ", err)
 	}
+	err = pubsub.Subscribe(conn, routing.ExchangePerilTopic, routing.GameLogSlug, "game_logs.*", pubsub.Durable, handlerLogs(), pubsub.UnmarshalGob)
+
+	if err != nil {
+		fmt.Println("Error binding to queue: ", "game_logs")
+		return
+	}
 
 	gamelogic.PrintServerHelp()
 	for run := true; run; {
