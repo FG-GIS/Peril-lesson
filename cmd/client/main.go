@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
@@ -89,7 +90,23 @@ func main() {
 		case "help":
 			gamelogic.PrintClientHelp()
 		case "spam":
-			fmt.Println("Spamming not allowed yet!")
+			if len(input) < 2 || input[1] == "" {
+				break
+			}
+			spamAmount, err := strconv.Atoi(input[1])
+			if err != nil {
+				fmt.Println("Error converting input spam amount: ", err)
+				return
+			}
+			// key := "game_logs." + gamestate.GetUsername()
+			for range spamAmount {
+				err = pubsub.PubGLog(newChannel, gamestate.GetUsername(), gamelogic.GetMaliciousLog())
+				// err = pubsub.PublishJSON(newChannel, routing.ExchangePerilTopic, key, gamelogic.GetMaliciousLog())
+				if err != nil {
+					fmt.Println("Error Publishing malicious log: ", err)
+					return
+				}
+			}
 		case "quit":
 			gamelogic.PrintQuit()
 			run = false

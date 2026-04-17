@@ -183,6 +183,10 @@ func Subscribe[T any](conn *amqp.Connection, exchange, queueName, key string, qu
 	if err != nil {
 		return err
 	}
+	err = ch.Qos(10, 0, false)
+	if err != nil {
+		return err
+	}
 	chDelivery, err := ch.Consume(queueName, "", false, false, false, false, nil)
 	if err != nil {
 		return err
